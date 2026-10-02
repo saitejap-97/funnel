@@ -1,0 +1,27 @@
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Env / secrets — never commit real keys
+.env
+*.pem
+*.key
+
+# Data — resumes are PII, never commit real ones
+data/resumes/*.pdf
+data/*.json
+data/store.json
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Frontend (decided later)
+frontend/node_modules/
+frontend/dist/
