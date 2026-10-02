@@ -39,3 +39,20 @@ def test_empty_when_both_empty(tmp_path):
 def test_fallback_used_on_exception(tmp_path):
     ext = ChainedExtractor(primary=_Boom(), fallback=_Good())
     assert "Python" in ext.extract(tmp_path / "a.pdf").full_text
+
+
+def test_cid_artifacts_cleaned(tmp_path):
+    class _Cid:
+        def extract(self, path: Path) -> ExtractionResult:
+            from funnel.extraction.base import ExtractedPage
+            return ExtractionResult(
+                source_file=str(path),
+                pages=[ExtractedPage(page_no=1, text="(cid:127) shipped X",
+                                     char_count=100)],
+                full_text="(cid:127) shipped X, " + "detail " * 20,
+            )
+
+    ext = ChainedExtractor(primary=_Cid(), fallback=_Empty())
+    res = ext.extract(tmp_path / "a.pdf")
+    assert "(cid:" not in res.full_text
+    assert "• shipped X" in res.full_text
