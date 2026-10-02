@@ -66,3 +66,11 @@ Two extra seams (from design review):
 - Prompt injection (resumes are untrusted data): system prompt isolates resume
   as DATA in XML tags, temperature 0, no tool side-effects, human review gate
   before any auto-decision.
+
+## Security hardening (before any non-localhost deploy)
+
+- Validate uploads by content (PDF magic bytes + size cap), not extension;
+  reject path traversal in filenames; scan only `RESUME_DIR`.
+- No PII in logs (hash names/emails); never log `OPENROUTER_API_KEY`.
+- Add proxy/OIDC auth in front of the API; rate-limit `/ingest` and `/rank`
+  (LLM calls cost money per request).

@@ -44,3 +44,6 @@ Current version: **`v1`**.
 - Pairwise LLM re-rank of top-k only (cost control).
 - Skill-tag normalization table (e.g., "k8s" → "kubernetes") before scoring.
 - Blind mode (strip name/email/photo refs) for fairness audits.
+- Display-layer recommendation bands over `total_100` (e.g., ≥90 strong hire,
+  75–89 hire, 60–74 maybe, <60 no hire) — presentation only, never stored as
+  the score itself, thresholds confirmed with HR first.
