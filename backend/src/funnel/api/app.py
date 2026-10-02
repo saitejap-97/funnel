@@ -27,7 +27,7 @@ def create_app(
     ranking: RankingService,
     app_version: str = "0.1.0",
     rubric_version: str = "v1",
-    default_resume_dir: str = "../../data/resumes",
+    default_resume_dir: str = "data/resumes",
 ) -> FastAPI:
     app = FastAPI(title="Funnel HR screening", version=app_version)
 

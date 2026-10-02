@@ -37,6 +37,21 @@ def test_profiling_failed_on_invalid_llm_output():
     assert p.profile_status == ProfileStatus.FAILED
 
 
+def test_profiling_normalizes_strict_mode_sentinels():
+    """Strict schemas use ''/0 for unknown email/year; service maps to None."""
+    stub = StubLlmClient(payload={"name": "John", "email": "",
+                                  "skills": ["python"], "experience": [],
+                                  "education": [{"degree": "BS", "school": "X",
+                                                 "year": 0}],
+                                  "summary": "dev", "tags": []})
+    p = ProfilingService(stub).build_profile(
+        ResumeRaw(source_file="s.pdf", file_hash="h",
+                  full_text="John Python dev with many years of experience"))
+    assert p.profile_status == ProfileStatus.OK
+    assert p.email is None
+    assert p.education[0].year is None
+
+
 def test_ranking_sorts_by_weighted_total():
     def llm_for(score):
         return StubLlmClient(payload={

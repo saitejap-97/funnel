@@ -27,6 +27,13 @@ class ProfilingService:
         data = self._llm.complete_json(
             system=system, user=user, schema=profile_json_schema()
         )
+        # Strict-mode schemas can't express null unions, so the schema uses
+        # ""/0 sentinels for unknown email/year — normalize back to None here.
+        if not data.get("email"):
+            data["email"] = None
+        for entry in data.get("education", []):
+            if isinstance(entry, dict) and not entry.get("year"):
+                entry["year"] = None
         try:
             return CandidateProfile.model_validate(
                 {

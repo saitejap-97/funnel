@@ -23,11 +23,15 @@ PROFILE_SYSTEM = (
 
 
 def profile_json_schema() -> dict[str, Any]:
+    # Strict-mode compatible: every object node sets additionalProperties False,
+    # `required` lists every property key, and `type` is always a plain string
+    # (no ["string", "null"] unions). Unknown email/year are sent as ""/0 and
+    # normalized to None in ProfilingService.
     return {
         "type": "object",
         "properties": {
             "name": {"type": "string"},
-            "email": {"type": ["string", "null"]},
+            "email": {"type": "string"},
             "skills": {"type": "array", "items": {"type": "string"}},
             "experience": {
                 "type": "array",
@@ -39,6 +43,8 @@ def profile_json_schema() -> dict[str, Any]:
                         "years": {"type": "number"},
                         "summary": {"type": "string"},
                     },
+                    "required": ["title", "company", "years", "summary"],
+                    "additionalProperties": False,
                 },
             },
             "education": {
@@ -48,14 +54,17 @@ def profile_json_schema() -> dict[str, Any]:
                     "properties": {
                         "degree": {"type": "string"},
                         "school": {"type": "string"},
-                        "year": {"type": ["integer", "null"]},
+                        "year": {"type": "integer"},
                     },
+                    "required": ["degree", "school", "year"],
+                    "additionalProperties": False,
                 },
             },
             "summary": {"type": "string"},
             "tags": {"type": "array", "items": {"type": "string"}},
         },
-        "required": ["name", "skills", "experience", "education", "summary"],
+        "required": ["name", "email", "skills", "experience", "education",
+                     "summary", "tags"],
         "additionalProperties": False,
     }
 
@@ -63,7 +72,8 @@ def profile_json_schema() -> dict[str, Any]:
 def build_profile_prompt(resume_text: str) -> tuple[str, str]:
     user = (
         "<resume_data>\n" + resume_text[:12000] + "\n</resume_data>\n"
-        "Extract the candidate profile as JSON per the schema."
+        "Extract the candidate profile as JSON per the schema. "
+        'Use "" for unknown email and 0 for unknown graduation year.'
     )
     return PROFILE_SYSTEM, user
 
@@ -90,7 +100,8 @@ def rank_json_schema() -> dict[str, Any]:
                         "evidence": {"type": "string"},
                         "confidence": {"type": "number"},
                     },
-                    "required": ["criterion", "score_0_10"],
+                    "required": ["criterion", "score_0_10", "evidence",
+                                 "confidence"],
                     "additionalProperties": False,
                 },
             },
