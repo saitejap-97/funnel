@@ -6,6 +6,7 @@ from funnel.models.profile import (
     ProfileStatus,
     ResumeRaw,
 )
+from funnel.models.job import JobDescription
 from funnel.models.ranking import CriterionScore, RankResult
 
 __all__ = [
@@ -13,6 +14,7 @@ __all__ = [
     "CriterionScore",
     "Education",
     "Experience",
+    "JobDescription",
     "ProfileStatus",
     "RankResult",
     "ResumeRaw",

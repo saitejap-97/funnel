@@ -28,9 +28,10 @@ class ResumeRaw(BaseModel):
     """Raw extraction output. Separate from the LLM-built profile."""
 
     source_file: str
-    file_hash: str
+    file_hash: str  # sha256 of the file bytes (exact-duplicate detection)
     full_text: str = ""
     needs_ocr: bool = False
+    content_hash: str = ""  # sha256 of normalized text (near-duplicate detection)
 
 
 class CandidateProfile(BaseModel):

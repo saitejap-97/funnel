@@ -1,9 +1,19 @@
 # Funnel frontend (Vite + React + TS)
 
-Internal SPA against the FastAPI backend. Three screens mapping 1:1 to
-`docs/API_DESIGN.md`: candidate table (`/`), detail drawer
-(`/candidates/:id`), JD rank form (`/rank`), plus a "Rescan folder" button
-(`POST /ingest`).
+Internal SPA against the FastAPI backend. Screens map to
+`docs/API_DESIGN.md`:
+
+- `/` — job descriptions (click one → sorted resume matches)
+- `/jobs/:id` — ranked resume cards for that JD (score + rationale +
+  per-criterion breakdown)
+- `/candidates` — skill/role search bar (`q` covers name, skills, tags,
+  summary, experience) with resume cards: avatar, name, headline, summary,
+  top skills
+- `/candidates/:id` — full profile detail
+- `/rank-custom?jd=…` — rank against a pasted JD (no stored job needed)
+
+Avatars are initial-based (no photos in resumes) with a deterministic
+per-candidate color.
 
 ## Run
 

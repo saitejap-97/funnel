@@ -56,3 +56,22 @@ def test_cid_artifacts_cleaned(tmp_path):
     res = ext.extract(tmp_path / "a.pdf")
     assert "(cid:" not in res.full_text
     assert "• shipped X" in res.full_text
+
+
+def test_bullet_variants_normalized(tmp_path):
+    """Middle-dot bullets (·) from other PDF generations map to • so
+    near-duplicate resumes hash identically."""
+    class _Dots:
+        def extract(self, path: Path) -> ExtractionResult:
+            from funnel.extraction.base import ExtractedPage
+            return ExtractionResult(
+                source_file=str(path),
+                pages=[ExtractedPage(page_no=1, text="· item one · item two",
+                                     char_count=100)],
+                full_text="· item one · item two, " + "detail " * 20,
+            )
+
+    ext = ChainedExtractor(primary=_Dots(), fallback=_Empty())
+    res = ext.extract(tmp_path / "a.pdf")
+    assert "·" not in res.full_text
+    assert res.full_text.startswith("• item one • item two")

@@ -14,9 +14,16 @@ class ProfilingService:
         self._llm = llm
 
     def build_profile(self, raw: ResumeRaw) -> CandidateProfile:
+        # Identity = normalized-text hash (same resume, re-exported PDF → same
+        # profile). Empty/OCR text would collide, so those fall back to bytes.
+        identity = (
+            raw.content_hash
+            if (raw.content_hash and not raw.needs_ocr and raw.full_text.strip())
+            else raw.file_hash
+        )
         if raw.needs_ocr or not raw.full_text.strip():
             return CandidateProfile(
-                id=_stable_id(raw.file_hash),
+                id=_stable_id(identity),
                 name="",
                 source_file=raw.source_file,
                 file_hash=raw.file_hash,
@@ -38,7 +45,7 @@ class ProfilingService:
             return CandidateProfile.model_validate(
                 {
                     **data,
-                    "id": _stable_id(raw.file_hash),
+                    "id": _stable_id(identity),
                     "source_file": raw.source_file,
                     "file_hash": raw.file_hash,
                     "profile_status": ProfileStatus.OK,
@@ -46,7 +53,7 @@ class ProfilingService:
             )
         except Exception as exc:
             return CandidateProfile(
-                id=_stable_id(raw.file_hash),
+                id=_stable_id(identity),
                 name="",
                 source_file=raw.source_file,
                 file_hash=raw.file_hash,

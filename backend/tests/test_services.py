@@ -1,8 +1,12 @@
 """Services with faked deps: profiling, ranking determinism, ingest idempotency."""
 from funnel.llm.client import StubLlmClient
 from funnel.models.profile import CandidateProfile, ProfileStatus, ResumeRaw
+from funnel.repository.job_store import JsonFileJobStore
 from funnel.repository.json_store import JsonFileCandidateStore
-from funnel.services.ingestion import IngestionService
+from funnel.services.ingestion import (
+    IngestionService,
+    job_title_from_filename,
+)
 from funnel.services.profiling import ProfilingService
 from funnel.services.ranking import RankingService
 
@@ -110,3 +114,73 @@ def test_ingest_idempotent(tmp_path):
     assert (s1.scanned, s1.ingested) == (1, 1)
     assert (s2.scanned, s2.ingested) == (1, 1)
     assert len(store.list()) == 1
+
+
+def test_job_title_from_filename(tmp_path):
+    assert job_title_from_filename(
+        tmp_path / "01_jd_senior_backend_engineer_payments.pdf"
+    ) == "Senior Backend Engineer Payments"
+    assert job_title_from_filename(tmp_path / "jd_data_scientist.pdf") == "Data Scientist"
+
+
+def test_ingest_scans_job_descriptions(tmp_path):
+    from funnel.extraction.base import ExtractedPage, ExtractionResult
+
+    jd_dir = tmp_path / "jds"
+    jd_dir.mkdir()
+    (jd_dir / "01_jd_backend_engineer.pdf").write_bytes(b"%PDF fake jd")
+
+    class FakeExtractor:
+        def extract(self, path):
+            text = "Senior backend engineer needed: Python, Kubernetes, Postgres. " * 3
+            return ExtractionResult(
+                source_file=str(path),
+                pages=[ExtractedPage(page_no=1, text=text, char_count=len(text))],
+                full_text=text,
+            )
+
+    stub = StubLlmClient(payload={"name": "N", "skills": [], "experience": [],
+                                  "education": [], "summary": "", "tags": []})
+    store = JsonFileCandidateStore(tmp_path / "store.json")
+    jobs = JsonFileJobStore(tmp_path / "jobs.json")
+    svc = IngestionService(FakeExtractor(), ProfilingService(stub), store, jobs)
+    # tmp_path has no resume pdfs (only .pdf is under jds/), jd scan runs.
+    summary = svc.scan(tmp_path, jd_dir)
+    assert (summary.jobs_scanned, summary.jobs_ingested) == (1, 1)
+    assert jobs.list()[0].title == "Backend Engineer"
+    assert "Python" in jobs.list()[0].full_text
+    # Idempotent re-scan.
+    summary2 = svc.scan(tmp_path, jd_dir)
+    assert len(jobs.list()) == 1
+    assert (summary2.jobs_scanned, summary2.jobs_ingested) == (1, 1)
+
+
+def test_same_text_different_bytes_share_profile_id():
+    """Re-exported PDFs (same text, different bytes) dedupe to one profile."""
+    from funnel.services.ingestion import content_hash
+
+    text = "Jane Doe, Python engineer with many years of backend experience."
+    stub = StubLlmClient(payload={"name": "Jane", "skills": ["python"],
+                                  "experience": [], "education": [],
+                                  "summary": "eng", "tags": []})
+    svc = ProfilingService(stub)
+    a = svc.build_profile(ResumeRaw(source_file="a.pdf", file_hash="bytes1",
+                                    full_text=text,
+                                    content_hash=content_hash(text)))
+    b = svc.build_profile(ResumeRaw(source_file="b.pdf", file_hash="bytes2",
+                                    full_text=text + " ",
+                                    content_hash=content_hash(text + " ")))
+    assert a.id == b.id
+    assert a.profile_status == ProfileStatus.OK
+
+
+def test_empty_text_profiles_do_not_collide():
+    svc = ProfilingService(StubLlmClient(payload={}))
+    a = svc.build_profile(ResumeRaw(source_file="a.pdf", file_hash="h1",
+                                    full_text="",
+                                    content_hash="e3b0c44298fc1c149"))
+    b = svc.build_profile(ResumeRaw(source_file="b.pdf", file_hash="h2",
+                                    full_text="  ",
+                                    content_hash="e3b0c44298fc1c149"))
+    assert a.id != b.id
+    assert a.profile_status == ProfileStatus.NEEDS_OCR

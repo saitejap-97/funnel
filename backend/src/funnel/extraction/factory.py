@@ -12,10 +12,19 @@ MIN_CHARS_PRIMARY = 50  # below this, try fallback before flagging needs_ocr
 
 _CID_RE = re.compile(r"\(cid:\d+\)")
 
+# Glyph variants that mean "bullet" across PDF generations.
+_BULLET_VARIANTS = {
+    "\u00b7": "•",  # middle dot
+    "\u2027": "•",  # hyphenation point
+}
+
 
 def _clean(text: str) -> str:
     """Normalize common PDF text artifacts (unmapped glyphs like bullets)."""
-    return _CID_RE.sub("•", text)
+    text = _CID_RE.sub("•", text)
+    for old, new in _BULLET_VARIANTS.items():
+        text = text.replace(old, new)
+    return text
 
 
 class ChainedExtractor:

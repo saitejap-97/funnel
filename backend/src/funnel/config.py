@@ -26,6 +26,8 @@ class Settings:
     openrouter_model: str = "openai/gpt-4o-mini"
     resume_dir: str = "data/resumes"
     store_path: str = "data/store.json"
+    jd_dir: str = "data/job_descriptions"
+    jobs_path: str = "data/jobs.json"
     rubric_version: str = "v1"
     app_version: str = "0.1.0"
     cors_origins: tuple[str, ...] = DEFAULT_CORS_ORIGINS
@@ -51,6 +53,8 @@ def load_settings() -> Settings:
         openrouter_model=os.environ.get("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
         resume_dir=_resolve(os.environ.get("RESUME_DIR", "data/resumes")),
         store_path=_resolve(os.environ.get("STORE_PATH", "data/store.json")),
+        jd_dir=_resolve(os.environ.get("JD_DIR", "data/job_descriptions")),
+        jobs_path=_resolve(os.environ.get("JOBS_PATH", "data/jobs.json")),
         rubric_version=os.environ.get("RUBRIC_VERSION", "v1"),
         app_version=os.environ.get("APP_VERSION", "0.1.0"),
         cors_origins=tuple(

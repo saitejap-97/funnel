@@ -23,3 +23,19 @@ def test_corrupt_json_recovers(tmp_path):
     assert store.list() == []
     store.upsert(_p())
     assert len(store.list()) == 1
+
+
+def test_job_store_round_trip(tmp_path):
+    from funnel.models.job import JobDescription
+    from funnel.repository.job_store import JsonFileJobStore
+
+    store = JsonFileJobStore(tmp_path / "j.json")
+    store.upsert(JobDescription(id="j1", title="Backend Engineer",
+                                source_file="a.pdf", file_hash="h",
+                                full_text="python"))
+    store.upsert(JobDescription(id="j1", title="Backend Engineer",
+                                source_file="a.pdf", file_hash="h",
+                                full_text="python"))
+    assert len(store.list()) == 1
+    assert store.get("j1").title == "Backend Engineer"
+    assert store.get("nope") is None

@@ -46,6 +46,25 @@ export interface RankResult {
   rubric_version: string;
 }
 
+export interface JobDescription {
+  id: string;
+  title: string;
+  source_file: string;
+  file_hash: string;
+  full_text: string;
+}
+
+export interface IngestSummary {
+  scanned: number;
+  ingested: number;
+  needs_ocr: number;
+  failed: number;
+  jobs_scanned: number;
+  jobs_ingested: number;
+  jobs_failed: number;
+  errors: string[];
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const resp = await fetch(`${BASE}${path}`, {
     ...init,
@@ -75,14 +94,16 @@ export const api = {
   },
   candidate: (id: string) =>
     request<CandidateProfile>(`/api/v1/candidates/${id}`),
-  ingest: (resume_dir?: string) =>
-    request<{ scanned: number; ingested: number; needs_ocr: number; failed: number; errors: string[] }>(
+  ingest: (resume_dir?: string, jd_dir?: string) =>
+    request<IngestSummary>(
       "/api/v1/ingest",
-      { method: "POST", body: JSON.stringify({ resume_dir }) },
+      { method: "POST", body: JSON.stringify({ resume_dir, jd_dir }) },
     ),
-  rank: (jd_text: string, limit = 20) =>
+  jobs: () => request<{ items: JobDescription[] }>("/api/v1/jobs"),
+  job: (id: string) => request<JobDescription>(`/api/v1/jobs/${id}`),
+  rank: (args: { jd_text?: string; jd_id?: string; limit?: number }) =>
     request<{ items: RankResult[]; rubric_version: string }>("/api/v1/rank", {
       method: "POST",
-      body: JSON.stringify({ jd_text, limit }),
+      body: JSON.stringify({ jd_text: args.jd_text ?? "", jd_id: args.jd_id ?? null, limit: args.limit ?? 20 }),
     }),
 };
