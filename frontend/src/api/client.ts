@@ -106,4 +106,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ jd_text: args.jd_text ?? "", jd_id: args.jd_id ?? null, limit: args.limit ?? 20 }),
     }),
+  matches: (job_id: string, limit = 20) =>
+    request<{ items: RankResult[]; rubric_version: string; cached: boolean }>(
+      `/api/v1/jobs/${job_id}/matches?limit=${limit}`,
+    ),
 };

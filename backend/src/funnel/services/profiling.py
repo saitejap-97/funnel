@@ -49,6 +49,7 @@ class ProfilingService:
                     "source_file": raw.source_file,
                     "file_hash": raw.file_hash,
                     "profile_status": ProfileStatus.OK,
+                    "content_hash": raw.content_hash,
                 }
             )
         except Exception as exc:

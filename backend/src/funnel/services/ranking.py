@@ -43,19 +43,24 @@ class RankingService:
                     rubric_version=self._rubric_version,
                 )
             )
-        # Deterministic order: score desc, then skills_match, then
-        # experience_relevance, then id (stable). Matches docs/RUBRIC.md.
-        def _score(r: RankResult, key: str) -> float:
-            return next(
-                (b.score_0_10 for b in r.breakdown if b.criterion == key), 0.0
-            )
+        return sort_ranked(results)[:limit]
 
-        def sort_key(r: RankResult) -> tuple:
-            return (
-                -r.total_100,
-                -_score(r, "skills_match"),
-                -_score(r, "experience_relevance"),
-                r.candidate_id,
-            )
 
-        return sorted(results, key=sort_key)[:limit]
+def sort_ranked(results: list[RankResult]) -> list[RankResult]:
+    """Deterministic order: score desc, then skills_match, then
+    experience_relevance, then id (stable). Matches docs/RUBRIC.md."""
+
+    def _score(r: RankResult, key: str) -> float:
+        return next(
+            (b.score_0_10 for b in r.breakdown if b.criterion == key), 0.0
+        )
+
+    def sort_key(r: RankResult) -> tuple:
+        return (
+            -r.total_100,
+            -_score(r, "skills_match"),
+            -_score(r, "experience_relevance"),
+            r.candidate_id,
+        )
+
+    return sorted(results, key=sort_key)

@@ -12,7 +12,8 @@ export default function JobMatchesPage() {
   const [title, setTitle] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [rubric, setRubric] = useState("");
-  const [status, setStatus] = useState("Scoring… (one LLM call per candidate)");
+  const [cached, setCached] = useState(false);
+  const [status, setStatus] = useState("Loading…");
 
   useEffect(() => {
     if (!id) return;
@@ -20,8 +21,11 @@ export default function JobMatchesPage() {
       try {
         const job = await api.job(id);
         setTitle(job.title);
-        const body = await api.rank({ jd_id: id });
+        // Stale-while-revalidate: instant when cached, scores only
+        // new/changed pairs otherwise.
+        const body = await api.matches(id);
         setRubric(body.rubric_version);
+        setCached(body.cached);
         const all = await api.candidates({ limit: 200 });
         const byId = new Map(all.items.map((c) => [c.id, c]));
         setRows(
@@ -43,7 +47,10 @@ export default function JobMatchesPage() {
         <Link to="/">← Job descriptions</Link>
       </p>
       <h2>
-        {title || "…"} {rubric && <span className="muted">(rubric {rubric})</span>}
+        {title || "…"} {rubric && <span className="muted">(rubric {rubric})</span>}{" "}
+        {rows.length > 0 && (
+          <span className="muted small">{cached ? "⚡ cached" : "freshly scored"}</span>
+        )}
       </h2>
       {status && <p className="muted">{status}</p>}
       <div className="grid">

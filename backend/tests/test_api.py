@@ -5,8 +5,10 @@ from funnel.api.app import create_app
 from funnel.llm.client import StubLlmClient
 from funnel.models.job import JobDescription
 from funnel.models.profile import CandidateProfile, ProfileStatus
+from funnel.repository.evaluations import JsonFileEvaluationStore
 from funnel.repository.job_store import JsonFileJobStore
 from funnel.repository.json_store import JsonFileCandidateStore
+from funnel.services.evaluation import EvaluationService
 from funnel.services.ingestion import IngestionService
 from funnel.services.profiling import ProfilingService
 from funnel.services.ranking import RankingService
@@ -45,11 +47,14 @@ def _client(tmp_path):
                                     full_text="")
 
     profiling = ProfilingService(stub)
+    evals = JsonFileEvaluationStore(tmp_path / "e.json")
+    evaluation = EvaluationService(stub, store, jobs, evals)
     app = create_app(
         repository=store,
         ingestion=IngestionService(FakeExtractor(), profiling, store, jobs),
         ranking=RankingService(stub),
         jobs=jobs,
+        evaluation=evaluation,
         cors_origins=("http://localhost:5173",),
     )
     return TestClient(app)
@@ -98,6 +103,16 @@ def test_rank_by_job_id(tmp_path):
     assert body["items"][0]["candidate_id"] == "c1"
     assert c.post("/api/v1/rank", json={"jd_id": "nope"}).status_code == 404
     assert c.post("/api/v1/rank", json={}).status_code == 422
+
+
+def test_matches_endpoint_serves_cache(tmp_path):
+    c = _client(tmp_path)
+    first = c.get("/api/v1/jobs/j1/matches").json()
+    assert first["cached"] is False  # cold: LLM scored the pair
+    assert first["items"][0]["candidate_id"] == "c1"
+    second = c.get("/api/v1/jobs/j1/matches").json()
+    assert second["cached"] is True  # warm: zero LLM calls
+    assert c.get("/api/v1/jobs/nope/matches").status_code == 404
 
 
 def test_search_matches_experience_text(tmp_path):

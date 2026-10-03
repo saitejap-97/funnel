@@ -184,3 +184,76 @@ def test_empty_text_profiles_do_not_collide():
                                     content_hash="e3b0c44298fc1c149"))
     assert a.id != b.id
     assert a.profile_status == ProfileStatus.NEEDS_OCR
+
+
+def _rank_stub():
+    return StubLlmClient(payload={
+        "scores": [
+            {"criterion": "skills_match", "score_0_10": 8,
+             "evidence": "e", "confidence": 0.8},
+            {"criterion": "experience_relevance", "score_0_10": 7,
+             "evidence": "", "confidence": 0.5},
+            {"criterion": "education_fit", "score_0_10": 6,
+             "evidence": "", "confidence": 0.5},
+            {"criterion": "impact_signals", "score_0_10": 6,
+             "evidence": "", "confidence": 0.5},
+            {"criterion": "growth_trajectory", "score_0_10": 6,
+             "evidence": "", "confidence": 0.5},
+        ],
+        "rationale": "fit",
+    })
+
+
+def _eval_setup(tmp_path, stub):
+    from funnel.models.job import JobDescription
+    from funnel.services.evaluation import EvaluationService
+    from funnel.repository.evaluations import JsonFileEvaluationStore
+
+    store = JsonFileCandidateStore(tmp_path / "s.json")
+    jobs = JsonFileJobStore(tmp_path / "j.json")
+    evals = JsonFileEvaluationStore(tmp_path / "e.json")
+    jobs.upsert(JobDescription(id="j1", title="Backend", source_file="jd.pdf",
+                               file_hash="h", full_text="python backend"))
+    return store, EvaluationService(stub, store, jobs, evals)
+
+
+def test_ensure_ranked_caches_second_call(tmp_path):
+    stub = _rank_stub()
+    store, svc = _eval_setup(tmp_path, stub)
+    store.upsert(_profile("c1", "Ann"))
+    first, fresh1 = svc.ensure_ranked("j1")
+    assert fresh1 is False
+    assert len(stub.calls) == 1
+    second, fresh2 = svc.ensure_ranked("j1")
+    assert fresh2 is True  # zero LLM calls
+    assert len(stub.calls) == 1
+    assert [r.candidate_id for r in second] == [r.candidate_id for r in first]
+
+
+def test_ensure_ranked_only_rescores_changed(tmp_path):
+    stub = _rank_stub()
+    store, svc = _eval_setup(tmp_path, stub)
+    store.upsert(_profile("c1", "Ann"))
+    svc.ensure_ranked("j1")
+    assert len(stub.calls) == 1
+    # New resume: only the new pair costs an LLM call.
+    new = _profile("c2", "Bob")
+    store.upsert(new)
+    results, fresh = svc.ensure_ranked("j1")
+    assert fresh is False
+    assert len(stub.calls) == 2
+    assert {r.candidate_id for r in results} == {"c1", "c2"}
+    # Updated resume (new content hash): rescores just that pair.
+    changed = _profile("c1", "Ann")
+    changed.content_hash = "different-content"
+    store.upsert(changed)
+    svc.ensure_ranked("j1")
+    assert len(stub.calls) == 3
+
+
+def test_ensure_ranked_unknown_job(tmp_path):
+    import pytest
+
+    _, svc = _eval_setup(tmp_path, _rank_stub())
+    with pytest.raises(KeyError):
+        svc.ensure_ranked("nope")

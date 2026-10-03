@@ -28,6 +28,7 @@ class Settings:
     store_path: str = "data/store.json"
     jd_dir: str = "data/job_descriptions"
     jobs_path: str = "data/jobs.json"
+    evals_path: str = "data/evaluations.json"
     rubric_version: str = "v1"
     app_version: str = "0.1.0"
     cors_origins: tuple[str, ...] = DEFAULT_CORS_ORIGINS
@@ -55,6 +56,7 @@ def load_settings() -> Settings:
         store_path=_resolve(os.environ.get("STORE_PATH", "data/store.json")),
         jd_dir=_resolve(os.environ.get("JD_DIR", "data/job_descriptions")),
         jobs_path=_resolve(os.environ.get("JOBS_PATH", "data/jobs.json")),
+        evals_path=_resolve(os.environ.get("EVALS_PATH", "data/evaluations.json")),
         rubric_version=os.environ.get("RUBRIC_VERSION", "v1"),
         app_version=os.environ.get("APP_VERSION", "0.1.0"),
         cors_origins=tuple(

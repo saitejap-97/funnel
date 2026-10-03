@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from funnel.models.profile import CandidateProfile, ProfileStatus
 from funnel.models.ranking import CriterionScore, RankResult
 from funnel.repository.base import CandidateRepository, JobRepository
+from funnel.services.evaluation import EvaluationService
 from funnel.services.ingestion import IngestionService
 from funnel.services.ranking import RankingService
 
@@ -33,6 +34,7 @@ def create_app(
     default_resume_dir: str = "data/resumes",
     default_jd_dir: str = "data/job_descriptions",
     jobs: JobRepository | None = None,
+    evaluation: EvaluationService | None = None,
     cors_origins: tuple[str, ...] | list[str] = (),
 ) -> FastAPI:
     app = FastAPI(title="Funnel HR screening", version=app_version)
@@ -132,6 +134,22 @@ def create_app(
         return {
             "items": [r.model_dump() for r in items],
             "rubric_version": rubric_version,
+        }
+
+    @app.get("/api/v1/jobs/{job_id}/matches")
+    def job_matches(job_id: str, limit: int = Query(default=20, ge=1, le=100)):
+        # Stale-while-revalidate: serves the precomputed cache, LLM-scores
+        # only new/changed pairs. Instant after warmup.
+        if evaluation is None:
+            raise HTTPException(status_code=501, detail="evaluation not configured")
+        try:
+            items, fresh = evaluation.ensure_ranked(job_id, limit=limit)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="job not found")
+        return {
+            "items": [r.model_dump() for r in items],
+            "rubric_version": rubric_version,
+            "cached": fresh,
         }
 
     return app

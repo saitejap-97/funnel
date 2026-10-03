@@ -52,11 +52,11 @@ Two extra seams (from design review):
    `extraction.extract(path)` → `ResumeRaw` → `services/profiling.build_profile(raw)`
    (calls `llm.complete_json(prompt, schema)`) → validate `CandidateProfile` →
    `repository.upsert()`. Idempotent on `(file_hash)`: re-ingest updates.
-2. **Rank** (`POST /rank {jd_text, rubric_version, limit}`): load profiles →
-   `rubric.build_rank_prompt(profile, jd)` → `llm.complete_json` per candidate
-   (async fan-out, bounded concurrency) → `rubric.aggregate()` deterministic
-   weighted sum → sort desc → return `RankResult[]` with per-criterion evidence.
-   LLM proposes, code disposes: ties/weights are pure math, reproducible.
+2. **Rank** (`GET /jobs/{id}/matches` — stale-while-revalidate): load cached
+   ranking → LLM-score only pairs whose profile `content_hash` changed (or are
+   new) → merge, deterministic sort, persist to `data/evaluations.json` →
+   return. Repeat views are pure data reads (`cached=true`, zero LLM calls).
+   (`POST /rank` stays ad-hoc/live for pasted JDs.)
 
 ## Failure handling
 
