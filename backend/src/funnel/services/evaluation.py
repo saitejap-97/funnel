@@ -56,6 +56,25 @@ class EvaluationService:
         )
         return sort_ranked(merged)[:limit], False
 
+    def best_scores(self) -> dict[str, dict[str, object]]:
+        """Best cached score per candidate across all JDs.
+
+        Pure read over the evaluations cache (may be stale — fine for
+        ordering search results; the matches view shows fresh numbers).
+        Returns {candidate_id: {"score": float, "job_title": str}}.
+        """
+        best: dict[str, dict[str, object]] = {}
+        for job in self._jobs.list():
+            cached = self._evaluations.get(job.id)
+            if cached is None:
+                continue
+            for r in cached.results:
+                prev = best.get(r.candidate_id)
+                if prev is None or r.total_100 > float(prev["score"]):
+                    best[r.candidate_id] = {"score": r.total_100,
+                                            "job_title": job.title}
+        return best
+
     def _valid_cached(
         self, cached: CachedRanking, profiles: list[CandidateProfile]
     ) -> dict[str, RankResult]:

@@ -82,15 +82,18 @@ export const api = {
     request<{ status: string; version: string; rubric_version: string }>(
       "/health",
     ),
-  candidates: (params: { q?: string; tag?: string; limit?: number; offset?: number } = {}) => {
+  candidates: (params: { q?: string; tag?: string; limit?: number; offset?: number; sort?: string } = {}) => {
     const qs = new URLSearchParams();
     if (params.q) qs.set("q", params.q);
     if (params.tag) qs.set("tag", params.tag);
     qs.set("limit", String(params.limit ?? 50));
     qs.set("offset", String(params.offset ?? 0));
-    return request<{ items: CandidateProfile[]; total: number }>(
-      `/api/v1/candidates?${qs}`,
-    );
+    if (params.sort) qs.set("sort", params.sort);
+    return request<{
+      items: CandidateProfile[];
+      total: number;
+      best: Record<string, { score: number; job_title: string }>;
+    }>(`/api/v1/candidates?${qs}`);
   },
   candidate: (id: string) =>
     request<CandidateProfile>(`/api/v1/candidates/${id}`),

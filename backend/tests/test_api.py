@@ -57,7 +57,9 @@ def _client(tmp_path):
         evaluation=evaluation,
         cors_origins=("http://localhost:5173",),
     )
-    return TestClient(app)
+    client = TestClient(app)
+    client.store = store  # type: ignore[attr-defined] — tests may add profiles
+    return client
 
 
 def test_health_and_candidates(tmp_path):
@@ -121,6 +123,33 @@ def test_search_matches_experience_text(tmp_path):
     assert c.get("/api/v1/candidates?q=fastapi").json()["total"] == 1
     # Nothing matches this.
     assert c.get("/api/v1/candidates?q=kubernetes").json()["total"] == 0
+
+
+def test_search_matches_full_resume_text(tmp_path):
+    c = _client(tmp_path)
+    c.store.upsert(CandidateProfile(
+        id="c9", name="Zed", skills=[], source_file="z.pdf", file_hash="hz",
+        summary="", resume_text="over 200 resumes screened with pneumatic press",
+        profile_status=ProfileStatus.OK))
+    assert c.get("/api/v1/candidates?q=pneumatic").json()["total"] == 1
+    assert c.get("/api/v1/candidates?q=PNEUMATIC").json()["total"] == 1
+
+
+def test_search_sorted_by_best_cached_rating(tmp_path):
+    c = _client(tmp_path)
+    # c1 gets a cached score via matches; c2 (added after) stays unscored.
+    c.get("/api/v1/jobs/j1/matches")
+    c.store.upsert(CandidateProfile(
+        id="c2", name="Bob", skills=[], source_file="b.pdf", file_hash="h2",
+        summary="", profile_status=ProfileStatus.OK))
+    body = c.get("/api/v1/candidates").json()
+    assert [i["id"] for i in body["items"]] == ["c1", "c2"]
+    assert body["best"]["c1"]["score"] > 0
+    assert body["best"]["c1"]["job_title"] == "Backend Engineer"
+    assert "c2" not in body["best"]
+    # Opt out: alphabetical.
+    alpha = c.get("/api/v1/candidates?sort=name").json()
+    assert [i["name"] for i in alpha["items"]] == ["Ann Rao", "Bob"]
 
 
 def test_cors_allows_vite_dev_origin(tmp_path):

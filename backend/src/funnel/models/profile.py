@@ -47,3 +47,4 @@ class CandidateProfile(BaseModel):
     file_hash: str = ""
     profile_status: ProfileStatus = ProfileStatus.OK
     content_hash: str = ""  # normalized-text hash; drives rank-cache staleness
+    resume_text: str = ""  # full extracted text; powers substring search

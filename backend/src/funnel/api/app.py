@@ -60,6 +60,7 @@ def create_app(
         tag: str = Query(default=""),
         limit: int = Query(default=50, ge=1, le=200),
         offset: int = Query(default=0, ge=0),
+        sort: str = Query(default="best", pattern="^(best|name)$"),
     ):
         # NOTE: substring/tag filtering here is presentation-level only
         # (no scoring or mutation). Rich querying moves to services/ later.
@@ -70,9 +71,24 @@ def create_app(
         if tag:
             tl = tag.lower()
             items = [p for p in items if any(tl == s.lower() for s in p.skills)]
+        best: dict[str, dict[str, object]] = (
+            evaluation.best_scores() if evaluation is not None else {}
+        )
+        if sort == "best":
+            # Highest pre-computed rating first; never-scored last, by name.
+            items = sorted(
+                items,
+                key=lambda p: (
+                    -float(best.get(p.id, {}).get("score", -1.0)),  # type: ignore[arg-type]
+                    p.name.lower(),
+                ),
+            )
+        else:
+            items = sorted(items, key=lambda p: p.name.lower())
         total = len(items)
         return {"items": [p.model_dump() for p in items[offset : offset + limit]],
-                "total": total}
+                "total": total,
+                "best": best}
 
     @app.get("/api/v1/candidates/{candidate_id}")
     def get_candidate(candidate_id: str):
@@ -156,7 +172,9 @@ def create_app(
 
 
 def _matches(profile: CandidateProfile, ql: str) -> bool:
-    """Substring search across name, skills, tags, summary, and experience."""
+    """Substring search across the FULL resume text plus structured fields."""
+    if ql in profile.resume_text.lower():
+        return True
     if ql in profile.name.lower():
         return True
     if ql in " ".join(profile.skills).lower():

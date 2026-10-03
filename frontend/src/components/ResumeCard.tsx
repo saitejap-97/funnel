@@ -42,9 +42,11 @@ function ScoreBadge({ value }: { value: number }) {
 export function ResumeCard({
   profile,
   result,
+  best,
 }: {
   profile: CandidateProfile;
   result?: RankResult;
+  best?: { score: number; job_title: string };
 }) {
   return (
     <article className="resume-card">
@@ -57,6 +59,11 @@ export function ResumeCard({
           <div className="muted small">{headlineOf(profile)}</div>
         </div>
         {result && <ScoreBadge value={result.total_100} />}
+        {!result && best && (
+          <span className="muted small">
+            best {best.score.toFixed(1)} · {best.job_title}
+          </span>
+        )}
       </div>
       {profile.summary && <p className="resume-summary">{profile.summary}</p>}
       {profile.skills.length > 0 && (

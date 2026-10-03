@@ -8,7 +8,7 @@ Frontend stack undecided — this contract is the only coupling.
 | Method & path | Request | Response | Notes |
 |---|---|---|---|
 | `GET /health` | — | `{status, version, rubric_version}` | liveness |
-| `GET /api/v1/candidates?q=&tag=&limit=&offset=` | query | `{items: CandidateProfile[], total}` | search stub: `q` substring over name/skills; `tag` exact skill |
+| `GET /api/v1/candidates?q=&tag=&limit=&offset=&sort=` | query | `{items: CandidateProfile[], total, best}` | `q` = substring over the **full resume text** + structured fields; `sort=best` (default) orders by pre-computed best cached rating desc with `best: {id: {score, job_title}}`; `sort=name` opts out |
 | `GET /api/v1/candidates/{id}` | — | `CandidateProfile` | 404 shape `{detail}` |
 | `POST /api/v1/ingest` `{resume_dir?, jd_dir?}` | optional overrides | `202 {scanned, ingested, needs_ocr, failed, jobs_scanned, jobs_ingested, jobs_failed, errors[]}` | synchronous scan for v1 (async job later); idempotent; `needs_ocr` counts stored-but-flagged scans separately |
 | `GET /api/v1/jobs` | — | `{items: JobDescription[]}` | sorted by title; JDs ingested from `JD_DIR` PDFs, no LLM cost |

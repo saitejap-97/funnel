@@ -4,15 +4,19 @@ import { ResumeCard } from "../components/ResumeCard";
 
 const DEBOUNCE_MS = 250;
 
+type Best = Record<string, { score: number; job_title: string }>;
+
 export default function CandidatesPage() {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<CandidateProfile[]>([]);
+  const [best, setBest] = useState<Best>({});
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState("Type to search — results update as you type.");
   const [searching, setSearching] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounced live search: every keystroke (incl. clearing) refreshes.
+  // Debounced live search over the FULL resume text; results arrive
+  // sorted by pre-computed best rating (desc).
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
     setSearching(true);
@@ -20,6 +24,7 @@ export default function CandidatesPage() {
       try {
         const body = await api.candidates({ q });
         setItems(body.items);
+        setBest(body.best ?? {});
         setTotal(body.total);
         setStatus(body.total === 0 ? "No candidates match." : "");
       } catch (e) {
@@ -49,7 +54,7 @@ export default function CandidatesPage() {
       {status && <p className="muted">{status}</p>}
       <div className="grid">
         {items.map((c) => (
-          <ResumeCard key={c.id} profile={c} />
+          <ResumeCard key={c.id} profile={c} best={best[c.id]} />
         ))}
       </div>
     </section>
