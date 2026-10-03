@@ -13,6 +13,11 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # .../backend
 REPO_ROOT = BACKEND_DIR.parent  # .../funnel (repo root)
 
+DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+)
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -23,6 +28,7 @@ class Settings:
     store_path: str = "data/store.json"
     rubric_version: str = "v1"
     app_version: str = "0.1.0"
+    cors_origins: tuple[str, ...] = DEFAULT_CORS_ORIGINS
 
 
 def _resolve(p: str) -> str:
@@ -47,4 +53,10 @@ def load_settings() -> Settings:
         store_path=_resolve(os.environ.get("STORE_PATH", "data/store.json")),
         rubric_version=os.environ.get("RUBRIC_VERSION", "v1"),
         app_version=os.environ.get("APP_VERSION", "0.1.0"),
+        cors_origins=tuple(
+            o.strip()
+            for o in os.environ.get("CORS_ORIGINS", "").split(",")
+            if o.strip()
+        )
+        or DEFAULT_CORS_ORIGINS,
     )

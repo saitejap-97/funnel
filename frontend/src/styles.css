@@ -1,0 +1,112 @@
+/* Minimal internal-tool styling. No framework, easy to replace. */
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #1a1a1a;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 2rem;
+  border-bottom: 1px solid #ddd;
+  padding: 1rem 0;
+}
+header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+nav {
+  display: flex;
+  gap: 1rem;
+}
+.row {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+  flex-wrap: wrap;
+}
+input,
+textarea,
+button {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+}
+input,
+textarea {
+  border: 1px solid #bbb;
+  border-radius: 4px;
+}
+input {
+  min-width: 200px;
+}
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+.muted {
+  color: #666;
+}
+.error {
+  color: #b00020;
+}
+.pill {
+  font-size: 0.8rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #eee;
+}
+.pill.ok {
+  background: #dff0d8;
+}
+.pill.needs_ocr,
+.pill.failed {
+  background: #f9e2c8;
+}
+.card {
+  border: 1px solid #e2e2e2;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+}
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.2rem 0;
+}
+.bar-label {
+  width: 170px;
+  font-size: 0.85rem;
+}
+.bar {
+  flex: 1;
+  height: 8px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: #2f6fed;
+}

@@ -43,6 +43,7 @@ def _client(tmp_path):
         repository=store,
         ingestion=IngestionService(FakeExtractor(), profiling, store),
         ranking=RankingService(stub),
+        cors_origins=("http://localhost:5173",),
     )
     return TestClient(app)
 
@@ -72,3 +73,15 @@ def test_ingest_endpoint_reports_summary(tmp_path):
     body = c.post("/api/v1/ingest", json={"resume_dir": str(tmp_path)}).json()
     assert body["scanned"] == 0
     assert {"scanned", "ingested", "needs_ocr", "failed", "errors"} <= set(body)
+
+
+def test_cors_allows_vite_dev_origin(tmp_path):
+    c = _client(tmp_path)
+    resp = c.options(
+        "/api/v1/candidates",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert resp.headers.get("access-control-allow-origin") == "http://localhost:5173"

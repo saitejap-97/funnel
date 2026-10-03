@@ -45,4 +45,5 @@ app = create_app(
     app_version=_settings.app_version,
     rubric_version=_settings.rubric_version,
     default_resume_dir=_settings.resume_dir,
+    cors_origins=_settings.cors_origins,
 )

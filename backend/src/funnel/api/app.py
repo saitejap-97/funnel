@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from funnel.models.profile import CandidateProfile, ProfileStatus
@@ -28,8 +29,16 @@ def create_app(
     app_version: str = "0.1.0",
     rubric_version: str = "v1",
     default_resume_dir: str = "data/resumes",
+    cors_origins: tuple[str, ...] | list[str] = (),
 ) -> FastAPI:
     app = FastAPI(title="Funnel HR screening", version=app_version)
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(cors_origins),
+            allow_methods=["GET", "POST"],
+            allow_headers=["Content-Type"],
+        )
 
     @app.get("/health")
     def health():
